@@ -79,8 +79,9 @@
 
         if (!response.ok) throw new Error('Ошибка сервера');
 
-        const data = await response.json();
-        return data.result.alternatives[0].message.text.replace(/```/g, '').trim();
+       const data = await response.json();
+console.log('Ответ от сервера:', data); // Добавь эту строчку
+return data.result.alternatives[0].message.text.replace(/```/g, '').trim();
     }
 
     let currentCategory = 'random';
