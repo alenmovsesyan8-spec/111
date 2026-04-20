@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-    const YANDEX_API_KEY = 'AQVNzFKmvqwobDFYXIJ0irkzr-a0V9Tb-YelXmvL';
+    const YANDEX_API_KEY = process.env.YANDEX_API_KEY;
     const FOLDER_ID = 'b1g11f5t6qk8rthn8c';
 
     // Получаем промпт из тела запроса
