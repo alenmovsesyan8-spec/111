@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор оправданий для пропушеных пар </title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); min-height: 100vh; color: white; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); }
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); color: white; }
+        .counter { background: rgba(0, 0, 0, 0.2); padding: 10px 20px; border-radius: 50px; display: inline-block; font-size: 0.9em; margin-bottom: 20px; }
+        .excuse-display { background: rgba(0, 0, 0, 0.2); border-radius: 15px; padding: 25px; margin: 20px 0; min-height: 180px; font-size: 1.4em; line-height: 1.6; display: flex; align-items: center; justify-content: center; text-align: center; border-left: 5px solid #FFD700; }
+        .categories { display: flex; justify-content: center; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
+        .cat-btn { background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3); color: white; padding: 10px 20px; border-radius: 30px; cursor: pointer; transition: all 0.3s; }
+        .cat-btn.active { background: rgba(255, 215, 0, 0.3); border-color: #FFD700; }
+        .btn-generate { background: linear-gradient(to right, #FF416C, #FF4B2B); color: white; border: none; padding: 18px; font-size: 1.2em; border-radius: 50px; cursor: pointer; width: 100%; font-weight: bold; margin: 15px 0; }
+        .btn-copy { background: linear-gradient(to right, #00b09b, #96c93d); color: white; border: none; padding: 18px; font-size: 1.2em; border-radius: 50px; cursor: pointer; width: 100%; margin: 10px 0; }
+        .btn-history { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.3); padding: 15px; border-radius: 50px; cursor: pointer; margin: 15px 0; width: 100%; }
+        .history-section { margin-top: 20px; max-height: 250px; overflow-y: auto; padding: 15px; background: rgba(0, 0, 0, 0.2); border-radius: 10px; display: none; }
+        .history-item { padding: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.95em; }
+        .clear-history { background: rgba(220, 53, 69, 0.7); color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; margin-top: 10px; }
+        .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid white; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Генератор Оправданий</h1>
+            <div class="counter" id="counter">Использовано: 0 раз</div>
+        </header>
+
+        <div class="excuse-display" id="excuseDisplay">Нажмите кнопку — нейросеть придумает оправдание!</div>
+
+        <div class="categories">
+            <button class="cat-btn active" data-cat="random">🎲 Случайный</button>
+            <button class="cat-btn" data-cat="transport">🚌 Транспорт</button>
+            <button class="cat-btn" data-cat="tech">💻 Техника</button>
+            <button class="cat-btn" data-cat="nature">🌿 Природа</button>
+            <button class="cat-btn" data-cat="hero">🦸 Геройство</button>
+        </div>
+
+        <button class="btn-generate" id="generateBtn">✨ Сгенерировать оправдание ✨</button>
+        <button class="btn-copy" id="copyBtn">📋 Скопировать оправдание</button>
+        <button class="btn-history" id="historyBtn">📜 Показать историю</button>
+
+        <div class="history-section" id="historySection">
+            <div id="historyList"></div>
+            <button class="clear-history" id="clearHistoryBtn">🗑 Очистить историю</button>
+        </div>
+    </div>
+
+<script>
+    const scenarioPrompts = {
+        transport: 'транспортный коллапс: сломался автобус, огромная пробка, авария на дороге, метро встало, трамвай сошёл с рельсов',
+        tech: 'технический сбой: не сработал будильник из-за обновления, отключили электричество, сломался телефон, умная колонка не разбудила',
+        nature: 'природный форс-мажор: ливень, снегопад, ураган, затопило дороги, упавшее дерево, гололёд',
+        hero: 'геройский поступок: помог пожилому человеку, спас животное, помог ребёнку найти родителей, вернул найденный кошелёк'
+    };
+
+    // ФУНКЦИЯ ОБРАЩЕНИЯ К СЕРВЕРУ
+    async function generateExcuseByAI(subject, scenarioType) {
+        let scenarioText = scenarioPrompts[scenarioType];
+        if (!scenarioText || scenarioType === 'random') {
+            const values = Object.values(scenarioPrompts);
+            scenarioText = values[Math.floor(Math.random() * values.length)];
+        }
+
+        const prompt = `Придумай короткое, смешное и правдоподобное оправдание для опоздания на ${subject}. Сценарий: ${scenarioText}. 3-5 предложений, от первого лица. В конце фраза "Обещаю, такого больше не повторится!".`;
+
+        // Обращаемся к /api/generate
+        const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: prompt })
+        });
+
+        if (!response.ok) throw new Error('Ошибка сервера');
+
+        const data = await response.json();
+        return data.result.alternatives[0].message.text.replace(/```/g, '').trim();
+    }
+
+    let currentCategory = 'random';
+    let currentExcuse = '';
+    let usageCount = 0;
+    let history = [];
+    let historyVisible = false;
+    let isLoading = false;
+
+    const excuseDisplay = document.getElementById('excuseDisplay');
+    const generateBtn = document.getElementById('generateBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const historyBtn = document.getElementById('historyBtn');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const historySection = document.getElementById('historySection');
+    const historyList = document.getElementById('historyList');
+    const counterElement = document.getElementById('counter');
+    const catButtons = document.querySelectorAll('.cat-btn');
+
+    function saveToStorage() { localStorage.setItem('excuseHistory', JSON.stringify(history)); localStorage.setItem('excuseCount', usageCount); }
+    function loadFromStorage() { const sH = localStorage.getItem('excuseHistory'); const sC = localStorage.getItem('excuseCount'); if(sH) { history = JSON.parse(sH); updateHistoryDisplay(); } if(sC) { usageCount = parseInt(sC); updateCounter(); } }
+    function updateCounter() { counterElement.textContent = `Использовано: ${usageCount} раз`; }
+    function addToHistory(excuse) { history.unshift({ text: excuse, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }); if(history.length > 15) history.pop(); updateHistoryDisplay(); }
+
+    function updateHistoryDisplay() {
+        historyList.innerHTML = history.length ? '' : '<div class="history-item">История пуста</div>';
+        history.forEach(item => {
+            const div = document.createElement('div'); div.className = 'history-item';
+            div.innerHTML = `<span style="opacity:0.6; margin-right:10px">${item.time}</span><span>${item.text}</span>`;
+            historyList.appendChild(div);
+        });
+    }
+
+    function toggleHistory() { historyVisible = !historyVisible; historySection.style.display = historyVisible ? 'block' : 'none'; historyBtn.textContent = historyVisible ? '📜 Скрыть историю' : '📜 Показать историю'; }
+    function clearHistory() { if(confirm('Очистить?')) { history = []; usageCount = 0; updateHistoryDisplay(); updateCounter(); saveToStorage(); } }
+
+    async function generateExcuse() {
+        if (isLoading) return;
+        isLoading = true;
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<span class="loading-spinner"></span> Придумываю...';
+        excuseDisplay.textContent = 'Нейросеть сочиняет...';
+
+        try {
+            const excuse = await generateExcuseByAI('занятие', currentCategory);
+            currentExcuse = excuse;
+            excuseDisplay.textContent = currentExcuse;
+            addToHistory(currentExcuse);
+            usageCount++;
+            updateCounter();
+            saveToStorage();
+        } catch (error) {
+            excuseDisplay.textContent = '❌ Ошибка: ' + error.message;
+        } finally {
+            isLoading = false;
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '✨ Сгенерировать оправдание ✨';
+        }
+    }
+
+    catButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            catButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentCategory = this.dataset.cat;
+            generateExcuse();
+        });
+    });
+
+    generateBtn.addEventListener('click', generateExcuse);
+    copyBtn.addEventListener('click', () => { if(currentExcuse) navigator.clipboard.writeText(currentExcuse).then(() => alert('Скопировано!')); });
+    historyBtn.addEventListener('click', toggleHistory);
+    clearHistoryBtn.addEventListener('click', clearHistory);
+    document.addEventListener('DOMContentLoaded', loadFromStorage);
+</script>
+</body>
+</html>
