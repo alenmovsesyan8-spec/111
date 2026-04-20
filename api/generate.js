@@ -15,7 +15,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         // ВАЖНО: Замени "YOUR_FOLDER_ID" на ID своего каталога из Yandex Cloud
-        modelUri: "gpt://YOUR_FOLDER_ID/yandexgpt-lite",
+        modelUri: "gpt://b1gpfs86tjuroeggilm6/yandexgpt-lite",
         completionOptions: {
           stream: false,
           temperature: 0.7,
