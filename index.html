@@ -79,9 +79,15 @@
 
         if (!response.ok) throw new Error('Ошибка сервера');
 
-       const data = await response.json();
-console.log('Ответ от сервера:', data); // Добавь эту строчку
-return data.result.alternatives[0].message.text.replace(/```/g, '').trim();
+        const data = await response.json();
+        
+        // Проверяем, прислал ли сервер ошибку
+        if (data.error) {
+            throw new Error(data.error.message || 'Ошибка API');
+        }
+
+        // Если ошибки нет, возвращаем текст
+        return data.result.alternatives[0].message.text.replace(/```/g, '').trim();
     }
 
     let currentCategory = 'random';
